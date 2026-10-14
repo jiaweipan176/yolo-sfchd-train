@@ -1,0 +1,45 @@
+# Local data (do not exclude ultralytics/cfg/datasets).
+/datasets/
+/data/
+/images/
+/labels/
+
+# Weights, generated results and archives.
+*.pt
+*.pth
+*.onnx
+*.engine
+*.torchscript
+*.tflite
+*.zip
+*.cache
+runs/
+outputs/
+
+# Credentials and local settings.
+.env
+.env.*
+.comet.config
+*.comet.config
+credentials
+*.pem
+*.key
+.vscode/
+.idea/
+.agents/
+
+# Python environments, packaging and caches.
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.ipynb_checkpoints/
+
+# OS and temporary files.
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
