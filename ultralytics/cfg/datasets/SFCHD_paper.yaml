@@ -1,0 +1,16 @@
+# SFCHD: old split corresponding to COCO membership and paper Table 2.
+# Local manifests preserve original order; source train.txt and val.txt are unchanged.
+# train: 9897 images; missing 192.168.2.20_1c_29.jpg excluded.
+# val: 2475 images, called Testing in the paper; no independent test split.
+path: D:/Model/yolo/datasets/SFCHD/QY_final_dataset
+train: yolo/train_local.txt
+val: yolo/val_local.txt
+nc: 7
+names:
+  0: person
+  1: helmet
+  2: self_clothes
+  3: safety_clothes
+  4: head
+  5: blur_head
+  6: blur_clothes

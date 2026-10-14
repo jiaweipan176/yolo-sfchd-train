@@ -1,67 +1,69 @@
-# YOLOv8 / SFCHD 训练代码快照
+# YOLOv8 / SFCHD 训练源码
 
-此仓库保存当前本地修改后的训练代码，供后续迁移到 Kaggle GPU 使用。
+本仓库直接保存当前修改后的 Ultralytics 训练源码，可在 VS Code 中提交、推送，并由 Kaggle 拉取运行。源码已从压缩包迁移为普通文件目录。
 
-## 本次上传范围
+## 本地开发目录
 
-- `training-code.zip`：完整 `ultralytics/` 运行时、`pyproject.toml`、原项目 `README.md` 和 `LICENSE`。
-- `SOURCE_MANIFEST.json`：源提交号、工作区状态、压缩包和每个源码文件的 SHA-256。
-- 包内包含 `ultralytics/cfg/datasets/SFCHD_paper.yaml`，保留当前本地版本。
+```text
+D:\Model\yolo\kaggle\yolo-sfchd-train
+├── ultralytics/            # 训练框架源码、配置及运行资源
+├── pyproject.toml          # 安装与依赖配置
+├── LICENSE                 # 原项目许可证
+├── README.upstream.md      # 原项目说明
+├── SOURCE_ORIGIN.md        # 初始迁移来源
+└── .gitignore              # 排除数据集、权重、结果和缓存
+```
 
-代码来自本地工作目录的实际文件，保留已有修改。未上传 `.git` 历史、YOLOv5、文档树、示例、测试、缓存、训练结果、数据集或模型权重。核心包内部的小型资源文件保留，以保证正常导入和运行。
+以后在这个目录修改要同步到 GitHub 的训练代码。原来的 `D:\Model\yolo\yolov8` 保留，不与此目录自动同步；在旧目录修改代码，不会出现在本仓库的待提交列表里。
 
-这次先以压缩包上传源码快照，避免网页上传大量目录文件。以后需要逐行查看差异或持续开发时，可将包内源码解压后用 Git 提交为正常目录结构。
+## 用 VS Code 提交和推送
 
-## 在 Kaggle 中使用
+1. VS Code → **文件 → 打开文件夹**，选择上面的开发目录；也可打开旁边的 `yolo-sfchd-train.code-workspace`。
+2. 修改源码并保存。
+3. 左侧 **源代码管理**，查看修改差异，点击文件旁的 **+** 暂存。
+4. 输入本次改动的说明，点击 **提交**。
+5. 点击 **推送 / 同步更改**；首次需要时按 GitHub 登录提示操作。
+6. GitHub 页面查看最新提交，确认更新成功。
 
-本地磁盘不会自动挂载到 Kaggle。训练代码、图片/标签、输出分别管理：GitHub 保存代码快照，Kaggle 私有 Dataset 提供输入，`/kaggle/working` 保存输出。
+保存文件只保存到本机；提交记录版本；推送后 GitHub 才更新。执行“同步更改”前应查看是否存在需要拉取的远程提交。
 
-这个 GitHub 仓库为公开仓库，因此 Kaggle 可以直接拉取，无需 GitHub 密码或令牌。在已开启 Internet 的 Notebook 中依次运行：
+如希望在本机使用这份源码，先激活自己的 YOLO Python 环境，在这个目录的终端执行：
 
 ```bash
-!git clone https://github.com/jiaweipan176/yolo-sfchd-train.git /kaggle/working/yolo-repo
-!git -C /kaggle/working/yolo-repo rev-parse HEAD
+python -m pip install -e .
+python -c "import ultralytics; print(ultralytics.__file__)"
 ```
+
+确认打印路径位于本目录。此操作只在你指定的 Python 环境中执行，不要直接在未知的系统环境里安装。
+
+## Kaggle 拉取与安装
+
+在 Kaggle 创建 Notebook，开启 **Internet**。先使用 CPU 检查环境，开始训练时再选择 **GPU T4 x2**。
+
+在一个代码单元格中运行：
 
 ```python
 from pathlib import Path
-from zipfile import ZipFile
 import subprocess
 import sys
 
-source = Path('/kaggle/working/yolo-source')
-source.mkdir(parents=True, exist_ok=True)
-with ZipFile('/kaggle/working/yolo-repo/training-code.zip') as package:
-    package.extractall(source)
-subprocess.run([sys.executable, '-m', 'pip', 'install', '-e', str(source)], check=True)
+repo = Path('/kaggle/working/yolo-sfchd-train')
+subprocess.run([
+    'git', 'clone', 'https://github.com/jiaweipan176/yolo-sfchd-train.git', str(repo)
+], check=True)
+subprocess.run([sys.executable, '-m', 'pip', 'install', '-e', str(repo)], check=True)
+subprocess.run(['git', '-C', str(repo), 'rev-parse', 'HEAD'], check=True)
 ```
 
-新会话可重新运行这些单元格；同一会话不要重复 clone 到已存在目录。记录 `rev-parse HEAD` 的提交号，在后续正式实验中固定该提交，以免代码更新改变实验环境。
-
-如果网络无法访问 GitHub，也可以使用下面的文件上传路线：
-
-1. 从本仓库下载 `training-code.zip`，作为 Kaggle **私有 Dataset** 上传。
-2. 建立 Kaggle Notebook，使用 **Add Input / Add Data** 添加这个代码 Dataset。
-3. 先保持 Accelerator 为 None，确认 Internet 已开启，安装并检查源码。开始训练时再选择 **GPU T4 x2**，用 `nvidia-smi` 检查实际设备和平台剩余配额。
-4. 将下列 Python 代码放入 Notebook 单元格运行：
+新会话从头拉取；同一会话不要重复 clone 到已有目录。代码更新后，在**没有训练任务运行**时，拉取更新：
 
 ```python
-from pathlib import Path
-from zipfile import ZipFile
-import subprocess
-import sys
-
-archives = list(Path('/kaggle/input').rglob('training-code.zip'))
-assert len(archives) == 1, '请添加一个包含 training-code.zip 的代码 Dataset'
-source = Path('/kaggle/working/yolo-source')
-source.mkdir(parents=True, exist_ok=True)
-with ZipFile(archives[0]) as package:
-    package.extractall(source)
-subprocess.run([sys.executable, '-m', 'pip', 'install', '-e', str(source)], check=True)
-print('源码目录：', source)
+subprocess.run(['git', '-C', str(repo), 'pull', '--ff-only'], check=True)
 ```
 
-安装后如已在当前内核导入过其他版本的 `ultralytics`，重启内核，然后检查：
+随后重启 Notebook 内核，再重新导入框架。若依赖配置也更新了，需要重新执行源码安装。避免让正在训练的任务读到途中变更的代码。
+
+重启后检查来源与 GPU：
 
 ```python
 import ultralytics
@@ -71,26 +73,28 @@ print('框架版本：', ultralytics.__version__)
 print('PyTorch：', torch.__version__)
 print('CUDA 可用：', torch.cuda.is_available())
 print('GPU 数量：', torch.cuda.device_count())
-assert '/kaggle/working/yolo-source/' in ultralytics.__file__
+assert '/kaggle/working/yolo-sfchd-train/' in ultralytics.__file__
 ```
 
-必须从本次上传的源码安装，才能使用本地修改。直接 `pip install ultralytics` 安装的是发布包。
+正式实验保存 Git 提交号、依赖版本和数据版本。复跑既有实验时，在安装前执行 `git checkout <记录的完整提交号>`，不直接使用可能已经变化的最新代码。
 
-## 数据就绪之后才启动训练
+## 数据与训练输出
 
-图片和标签尚未上传。包内 SFCHD YAML 与现有图片清单还含 `D:/Model/yolo/...` 本机路径，不能直接作为 Kaggle 数据配置使用。后续需单独上传 `images/`、`labels/`、原划分清单，并在云端生成新 YAML 和图片清单，保留原来的划分成员。
+训练图片、标签、预训练权重和运行结果不纳入本仓库。数据单独上传到 Kaggle **私有 Dataset**，在 Notebook 用 **Add Input / Add Data** 添加；输出写入 `/kaggle/working`。
 
-论文口径的当前配置为 7 类，train 9897 张、val 2475 张；val 对应论文的 Testing，当前这套划分没有独立 test。不要在迁移时随机重新划分数据，也不要将后续的小样本实验与完整复现实验混为一谈。
+`ultralytics/cfg/datasets/SFCHD_paper.yaml` 保留当前本地配置，其中的数据根路径仍为 `D:/Model/yolo/...`。迁移训练数据时，必须在云端生成新的 YAML 和图片清单，不可只改 YAML 而保留清单中的 Windows 绝对路径。
 
-数据配置生成后，先运行 1 个 epoch 检查数据读取和权重保存。例如在 Notebook 代码单元格中运行：
+当前论文口径配置为 7 类，train 9897 张、val 2475 张；val 对应论文的 Testing，没有独立 test。迁移时保留原划分成员，不重新随机划分。完整复现实验与小样本预标注实验分别记录。
+
+数据配置准备好后，先做 1 个 epoch 的运行检查：
 
 ```bash
 !yolo detect train model=yolov8n.pt data=/kaggle/working/SFCHD_kaggle.yaml epochs=1 imgsz=640 batch=16 device=0 workers=2 project=/kaggle/working/runs name=sfchd_smoke
 ```
 
-双 GPU 可设置 `device=0,1`，batch 是总批量，需可被 2 整除；两张卡的显存不会自动合成一张卡的显存。正式实验的模型型号、epoch、优化器、学习率、增强和预训练方式必须另行对照论文。上面的短训练参数只用于检查运行链路。
+正式实验的型号、预训练方式、epoch、优化器、学习率和增强设置另行对照论文。双 GPU 设置 `device=0,1`，batch 是总批量，应能被 2 整除。上述短训练参数只检查链路，不是论文复现参数。
 
-长训练使用 **Save Version → Save & Run All** 在后台运行。会重新从头执行 Notebook，应避免同时保留一个正在训练的交互会话。保存或下载 `best.pt`、可恢复的中间检查点、`results.csv`、`args.yaml` 和环境信息；不要假定临时运行目录自动持久保存。每周配额与单次会话时限以当前账号页面为准。
+长训练使用 **Save Version → Save & Run All**，会从头执行 Notebook；避免同时保留正在训练的交互会话。保存或下载 `best.pt`、可恢复的中间检查点、`results.csv`、`args.yaml` 和环境信息。配额与会话时限以当前账号页面为准。
 
 ## 官方参考
 
@@ -98,4 +102,4 @@ assert '/kaggle/working/yolo-source/' in ultralytics.__file__
 - [Kaggle GPU 使用与配额](https://www.kaggle.com/docs/efficient-gpu-usage)
 - [Ultralytics 训练说明](https://docs.ultralytics.com/modes/train/)
 
-本仓库上传完成仅代表训练代码已保存；尚未进行云端训练或验证论文指标。
+源码上传与 Git 关联完成，不代表云端训练已执行或论文指标已验证。
